@@ -1,0 +1,178 @@
+/* HoneLENS Tokens v1 — HoneNurse Concise Design System */
+:root, [data-theme="light"] {
+  --hn-navy: #18324a;
+  --hn-teal: #1f6f78;
+  --hn-teal-tint: #e3f0f1;
+  --hn-teal-light: #7cc4cb;
+  --hn-paper: #f8f8f5;
+  --hn-white: #ffffff;
+  --hn-panel: #efefea;
+  --hn-slate: #5e6a72;
+  --hn-hair: #d3d1c7;
+  --hn-field: #7a858c;
+  --hn-amber: #7a4a0a;
+  --hn-amber-tint: #faeeda;
+  --hn-red: #a32d2d;
+  --hn-red-tint: #fcebeb;
+  --hn-focus: #1f6f78;
+  --hl-on-teal: #ffffff;
+  --hl-teal-hover: #1d6871;
+  --hl-teal-pressed: #1b626a;
+  --hl-surface-hover: #f3f5f6;
+  --hl-surface-pressed: #eaedef;
+  --hl-table-head: #18324a;
+  --hl-table-head-ink: #f8f8f5;
+  --hl-glass: rgba(248, 248, 245, 0.88);
+  --hl-glass-edge: rgba(255, 255, 255, 0.7);
+  --hl-shadow-float: 0 1px 2px rgba(24, 50, 74, 0.08), 0 4px 12px rgba(24, 50, 74, 0.10);
+  --hl-shadow-pressed: inset 0 1px 2px rgba(24, 50, 74, 0.18);
+  --hl-shadow-none: none;
+}
+
+[data-theme="dark"] {
+  --hn-navy: #e8ecef;
+  --hn-teal: #6fb7be;
+  --hn-teal-tint: #12303a;
+  --hn-teal-light: #7cc4cb;
+  --hn-paper: #0f1b27;
+  --hn-white: #162636;
+  --hn-panel: #1b2e41;
+  --hn-slate: #9aa8b2;
+  --hn-hair: #26384a;
+  --hn-field: #6e7f8d;
+  --hn-amber: #e0b060;
+  --hn-amber-tint: #302410;
+  --hn-red: #f0948d;
+  --hn-red-tint: #3a1a19;
+  --hn-focus: #6fb7be;
+  --hl-on-teal: #0f1b27;
+  --hl-teal-hover: #7dbec4;
+  --hl-teal-pressed: #66a8af;
+  --hl-surface-hover: #233241;
+  --hl-surface-pressed: #2b3a48;
+  --hl-table-head: #1b2e41;
+  --hl-table-head-ink: #e8ecef;
+  --hl-glass: rgba(15, 27, 39, 0.88);
+  --hl-glass-edge: rgba(232, 236, 239, 0.08);
+  --hl-shadow-float: 0 1px 2px rgba(0, 0, 0, 0.40), 0 4px 12px rgba(0, 0, 0, 0.35);
+  --hl-shadow-pressed: inset 0 1px 2px rgba(0, 0, 0, 0.50);
+}
+
+:root {
+  --hn-s1: 4px;
+  --hn-s2: 8px;
+  --hn-s3: 12px;
+  --hn-s4: 16px;
+  --hn-s5: 24px;
+  --hn-s6: 32px;
+  --hn-s7: 48px;
+  --hn-s8: 64px;
+  
+  --hn-radius: 4px;
+  --hn-radius-lg: 8px;
+  --hl-radius-pill: 999px;
+  
+  --hn-callout-bar: 4px;
+  --hl-callout-bar-danger: 6px;
+  --hl-focus-width: 2px;
+  --hl-focus-offset: 2px;
+  
+  --hl-dur-fast: 120ms;
+  --hl-dur-base: 150ms;
+  --hl-dur-slow: 180ms;
+  --hl-dur-highlight: 600ms;
+  --hl-dur-reduced: 80ms;
+  --hl-ease: cubic-bezier(.2,.8,.2,1);
+  --hl-glass-blur: 12px;
+  
+  --hl-panel-min: 360px;
+  --hl-panel-max: 480px;
+  --hl-tab-width: 1280px;
+  --hl-control-h: 40px;
+  --hl-control-h-sm: 32px;
+  --hl-measure: 68ch;
+  
+  --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+
+/* Typography styles */
+.display {
+  font-family: var(--font-sans);
+  font-size: 32px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.title {
+  font-family: var(--font-sans);
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.section {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+.label {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 600;
+}
+.kicker {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hn-teal);
+}
+.nav {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+.body {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+.body-compact {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 400;
+}
+.small {
+  font-family: var(--font-serif);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 400;
+  color: var(--hn-slate);
+}
+.value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 400;
+}
+.value-strong {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+.timer {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 600;
+}

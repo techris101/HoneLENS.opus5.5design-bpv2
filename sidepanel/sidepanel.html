@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HoneLENS: Nursing EBP & Dosage</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body class="hl-canvas">
+
+  <!-- Header & Hub Navigation -->
+  <header class="hl-header">
+    <div class="hl-header__top">
+      <div class="hl-brand">
+        <svg class="hl-brand__logo" viewBox="-25 -25 124 150" fill="none">
+          <rect x="9.00" y="44.50" width="56.00" height="11.00" fill="var(--hn-teal)"></rect>
+          <polygon points="0.00,100.00 0.00,18.00 18.00,0.00 18.00,100.00" fill="var(--hn-navy)"></polygon>
+        </svg>
+        <div>
+          <span class="hl-brand__name">HoneLENS</span>
+          <span class="hl-brand__tagline">EBP &amp; Dosage</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span id="tier-badge" class="hl-badge hl-badge--teal" style="cursor: pointer;" title="License status">Pro Active</span>
+        <button id="theme-toggle-btn" class="hl-btn hl-btn--ghost hl-btn--sm" title="Toggle Light/Dark Theme" aria-label="Toggle theme">
+          <i data-icon="settings"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- 5 Primary Hubs + Settings -->
+    <nav class="hl-nav-bar" role="tablist">
+      <button class="hl-nav-tab is-active" data-hub="read" role="tab">
+        <i data-icon="search"></i> READ
+      </button>
+      <button class="hl-nav-tab" data-hub="practice" role="tab">
+        <i data-icon="calc"></i> PRACTICE
+      </button>
+      <button class="hl-nav-tab" data-hub="build" role="tab">
+        <i data-icon="assignment"></i> BUILD
+      </button>
+      <button class="hl-nav-tab" data-hub="audit" role="tab">
+        <i data-icon="check"></i> AUDIT
+      </button>
+      <button class="hl-nav-tab" data-hub="library" role="tab">
+        <i data-icon="library"></i> LIBRARY
+      </button>
+      <button class="hl-nav-tab" data-hub="settings" role="tab" title="Settings">
+        <i data-icon="settings"></i>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Secondary Subnav -->
+  <div id="subnav-container" class="hl-subnav">
+    <!-- Populated dynamically based on active hub -->
+  </div>
+
+  <!-- Main View Area -->
+  <main id="app-content" class="hl-main">
+    <!-- Populated dynamically by sidepanel.js -->
+  </main>
+
+  <!-- Modal and Toast Mounts -->
+  <div id="modal-root"></div>
+  <div id="toast-root" class="hl-toast-container"></div>
+
+  <script src="../assets/icons.js"></script>
+  <script type="module" src="sidepanel.js"></script>
+</body>
+</html>

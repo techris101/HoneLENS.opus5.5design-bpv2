@@ -1,0 +1,38 @@
+name: Build HoneLENS Extension
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Test, Validate & Package Extension
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Test Suite
+        run: |
+          node test/run-tests.js
+
+      - name: Package Chrome Extension ZIP
+        run: |
+          mkdir -p dist
+          zip -r dist/honelens-extension-v1.zip manifest.json background sidepanel styles assets modules
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: honelens-extension-v1
+          path: dist/honelens-extension-v1.zip
+          retention-days: 30

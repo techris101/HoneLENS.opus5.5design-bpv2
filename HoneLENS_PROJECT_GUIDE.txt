@@ -1,0 +1,874 @@
+================================================================================
+HONELENS: PROJECT DESCRIPTION AND BUILD GUIDE (v1, NO AI)
+================================================================================
+Prepared: Oct 4, 2026
+Scope: what to build. No timeline, no tool choice.
+
+  1. Project description and design philosophy
+  2. Every feature: what it does, what is free, what is paid
+  3. Payment rail (verified facts, setup, code)
+  4. Do you need your own database?
+  5. Items to re-verify while building
+
+
+################################################################################
+1. PROJECT DESCRIPTION
+################################################################################
+
+1.1 WHAT HONELENS IS
+--------------------------------------------------------------------------------
+HoneLENS is a Chrome (Manifest V3) side-panel extension for US nursing
+students. It turns the sources a student reads into an organized, checked,
+citation-ready assignment, and drills dosage calculation.
+
+Every result comes from explicit rules, math, public metadata lookups, or the
+student's own input. HoneLENS contains no AI model, no OCR, no semantic search
+and no generated text. It never writes or rewrites the student's work.
+
+It is a standalone, sellable product. It needs no HoneNurse account, website or
+ebook to work and to earn. It integrates with HoneNurse later through a shared
+data format (hone-pack) and optional links (section 1.8).
+
+1.2 WHO IT IS FOR
+--------------------------------------------------------------------------------
+Primary: US pre-licensure nursing students (ADN, BSN, accelerated BSN) in
+evidence-based practice (EBP) courses, capstones and dosage-calculation courses.
+Secondary: RN-to-BSN and MSN students writing literature reviews.
+Language: US English. Market: United States only.
+
+1.3 POSITIONING AND TRUST LANGUAGE
+--------------------------------------------------------------------------------
+Promise:
+  "From nursing source to organized assignment. Your reading, your decisions,
+   your words."
+Supporting line:
+  "HoneLENS does not generate or rewrite your assignment. Source checks use
+   explicit rules and linked metadata. Your notes stay on your device."
+
+Use: "Every claim traceable", "You do the thinking, HoneLENS does the busywork".
+Never claim: "AI-proof", "detector-proof", "approved by every school",
+"proves your work is yours", "verified peer-reviewed", "safe dose".
+Never lead with "no AI" as a feature. It is a design fact stated in the
+privacy and store pages. Course rules vary by instructor, so the product page
+tells students to confirm with their instructor when unsure.
+
+1.4 HARD NO-AI BOUNDARY
+--------------------------------------------------------------------------------
+Excluded from v1, permanently unless the product promise changes:
+  - Any LLM call (hosted or local), summaries, paraphrasing, drafts, answers
+  - OCR of any kind (Tesseract and similar engines are neural networks)
+  - Semantic or vector search, auto-tags, recommendations, "AI scores"
+  - Automatic card or question generation
+  - Automated verdicts: "peer-reviewed", "high quality", "safe", "correct level"
+  - AI-use detection or certificates
+  - Patient data, clinical advice, diagnosis, medication selection, real-patient
+    dosing
+Release checks: dependency inventory, no ML libraries, no model endpoints, all
+executable code bundled locally (MV3 forbids remote code), no analytics.
+
+1.5 DESIGN PHILOSOPHY (HONENURSE ALIGNMENT)
+--------------------------------------------------------------------------------
+The HoneNurse brand and design document is the source of truth. Where it
+conflicts with this section, it wins. Until it is applied, HoneLENS follows the
+"Concise Design" rules below. Brand line for the ecosystem: "Sharpen Your
+Clinical Judgement."
+
+Rules, translated to a side panel:
+  1. One idea per screen. Every panel opens with a small teal KICKER (e.g.
+     "SOURCE CHECK") and a one-sentence TITLE, then one focal element, then
+     nothing else. A mostly empty lower half means the screen is done.
+  2. Plain language. Every technical term is explained on its first appearance
+     in a "In plain terms: ..." box. Every acronym is spelled out at first use.
+     Settings has a Glossary (PICOT, EBP, RCT, CI, OR, RR, ARR, NNT, MeSH, DOI,
+     PMID, FSRS-free Leitner, APA).
+  3. Colour carries meaning, never decoration:
+       TEAL   defines, explains, "matches"
+       AMBER  needs your action, "doesn't match", "student-confirm needed"
+       RED    real danger only: retracted, Do Not Use abbreviation
+       GRAY   "unknown", muted metadata
+     Colour is never the only signal: every state also has a text label and an
+     icon.
+  4. "In your assignment: ..." amber note connects a concept to the next action
+     (this replaces the "At the bedside" note of the documents).
+  5. Tables: dark header row with white bold text, horizontal rules only,
+     alternating light rows.
+  6. No decorative elements, no confetti, no streak fireworks, no countdowns.
+  7. Typography: Calibri-style. Bundle Carlito (open, Calibri-metric-compatible)
+     locally. Font stack: Carlito, Calibri, "Segoe UI", system-ui, sans-serif.
+     No remote fonts.
+  8. Palette tokens (replace with the HoneNurse brand tokens when final):
+       INK #1A1A1A  TEAL #0F6E56  TEAL-FILL #E1F5EE
+       AMBER #7A4A0A  AMBER-FILL #FAEEDA
+       RED #A32D2D  RED-FILL #FCEBEB
+       GRAY #4E4D49  HAIR #D3D1C7  MUTED #8A8880
+     Define as CSS variables. Provide a dark theme from the same tokens.
+  9. Works at 360 px width and 200% zoom, full keyboard access, screen-reader
+     labels, reduced-motion support, AA contrast.
+
+1.6 ARCHITECTURE AND NETWORK CALLS
+--------------------------------------------------------------------------------
+  - All logic runs in the browser: side panel (UI), service worker (menus,
+    alarms, license check), offscreen document (capture stitching, canvas),
+    IndexedDB (library), chrome.storage.local (settings, license state).
+  - Nothing runs on the founder's PC. Builds and tests run in the cloud.
+  - No HoneLENS server in v1 (see section 4 for the optional Worker).
+  - No accounts. No analytics. No background uploads of notes, files or
+    assignment text.
+
+Every outside request HoneLENS makes (all of them appear in the in-app Network
+Disclosure panel, with exactly what is sent):
+  Destination                          Sent                      Used by
+  eutils.ncbi.nlm.nih.gov              PMIDs / DOIs              Source Check, Cite, Audit
+  api.crossref.org                     DOIs                      Source Check, Cite, Audit
+  www.ebi.ac.uk/europepmc              PMIDs                     Source Check (full-text link)
+  id.nlm.nih.gov (MeSH lookup)         search terms typed by user EBP query builder
+  live.dodopayments.com                license key + device label License check (Pro)
+Rules: throttle NCBI to 3 requests per second, batch IDs in one efetch call,
+cache every lookup locally with a timestamp, show "could not be looked up"
+when offline, keep the library fully usable offline.
+
+Manifest permissions (justify each in the store listing):
+  sidePanel, storage, unlimitedStorage, activeTab, scripting, contextMenus,
+  clipboardWrite, offscreen, alarms
+  host_permissions: the five hosts above only. No <all_urls> at install.
+  Reading a non-PubMed page happens only when the student clicks "Check this
+  page" (activeTab).
+
+1.7 PANEL STRUCTURE
+--------------------------------------------------------------------------------
+  READ      Source Check, Stats Calculator, Clip/Capture, Cite
+  PRACTICE  Dosage Trainer, Exam Simulator, Flashcards
+  BUILD     EBP Assignment Builder
+  AUDIT     Source Audit
+  LIBRARY   clips, notes, sources, cards, search
+  (gear)    Settings: License, Network disclosure, Backup, Glossary, About
+
+1.8 HONENURSE INTEGRATION (LATER, WITHOUT BREAKING STANDALONE)
+--------------------------------------------------------------------------------
+  - Data: hone-pack v1 (JSON) is the shared format. Fields: version, app,
+    exportedAt, sources[], clips[], notes[], citations[] (CSL-JSON), cards[],
+    assignments[], readingSheets[], matrixRows[], dosageAttempts[]. Every
+    record has a UUID, createdAt, updatedAt. dosageAttempts carry topic and a
+    NCLEX client-need tag. The license key is never exported.
+  - Identity: license key now. Optional HoneNurse account later adopts existing
+    keys; no migration of the student's data.
+  - Cross-links: after a completed session, at most once a week, dismissible,
+    never blocking a free feature. Example: weak IV-rate topic leads to a
+    HoneNurse ebook or mock exam. Use a config value for the HoneNurse base URL.
+  - Counters for hooks are local only.
+
+
+################################################################################
+2. FEATURES: DETAILS, FREE VS PAID
+################################################################################
+
+2.1 TIER MAP
+--------------------------------------------------------------------------------
+MARKETED, FREE
+  F1  Source Check
+  F2  Dosage Trainer
+  F3  Stats Calculator
+
+MARKETED, PAID (each has a free taste)
+  P1  EBP Assignment Builder
+  P2  Dosage Exam Simulator
+  P3  Source Audit
+
+QUIET (free, not marketed; they keep students inside the tool)
+  Q1  Page capture             Q8   Backup and hone-pack
+  Q2  Source clipper           Q9   Activity log
+  Q3  Highlights and notes     Q10  Network disclosure panel
+  Q4  Reading intake           Q11  "What this check means" panels
+  Q5  Library and search       Q12  HoneNurse links
+  Q6  Citation maker           Q13  Onboarding and glossary
+  Q7  Flashcards (Leitner)
+
+Free limits (config constants in one file; defaults, tune after beta):
+  activeAssignments            1
+  papersPerAssignment          3   (reading sheets and matrix rows)
+  matrixExport                 CSV only
+  simulatorExamsPerMonth       1
+  auditIdentifiersPerRun       5   (issue counts only; details are Pro)
+  auditDocxPerMonth            1   (issue counts only; details are Pro)
+Everything else in F1-F3 and Q1-Q13 is unlimited and free.
+
+Data rule: a Pro lock never blocks the student's access to their own data.
+hone-pack export, delete-all and CSV export always work, free or paid.
+
+Upgrade prompt rule: one calm sentence and one button, shown at the moment of
+need (example: "Word export is part of HoneLENS Pro."). No pop-ups, no timers.
+
+2.2 F1: SOURCE CHECK (FREE)
+--------------------------------------------------------------------------------
+Purpose: answer "Can I use this source for my assignment?" in one glance.
+Entry: on PubMed, PMC and Europe PMC article pages the panel shows the check
+automatically. On any other site, the student clicks "Check this page" and
+HoneLENS reads the page's citation meta tags (citation_title, citation_doi,
+citation_publication_date, citation_journal_title) with activeTab.
+
+What it shows (each line has a state: matches / doesn't match / unknown /
+student-confirmed):
+  1. Identifiers: PMID, DOI, title, journal, first author, year.
+  2. Publication date and age in years versus the student's date window.
+  3. PubMed publication types, shown exactly as tagged (for example Randomized
+     Controlled Trial, Meta-Analysis, Systematic Review, Observational Study).
+  4. Nearest evidence level (Melnyk and Johns Hopkins), only for unambiguous
+     types, always worded "nearest fit; check your course's table". When the
+     type does not decide the level (for example a systematic review that may
+     or may not include only RCTs), show "unknown" and say why.
+  5. Retraction and update status:
+       - PubMed publication type "Retracted Publication" is a red flag.
+       - Crossref update records (retraction, correction, expression of
+         concern) from the work record and from a search for notices that
+         update this DOI. Show the notice link, date and type.
+       - No record: "No matching update record found in Crossref on {date}."
+         It is never worded "not retracted".
+  6. Free full text: Europe PMC open-access flag and link, or "abstract only".
+  7. Peer review: HoneLENS never claims it. It shows a link to the journal's
+     site and a checkbox "I confirmed this journal is peer-reviewed" with an
+     optional note. That row reads "student-confirmed".
+
+Assignment criteria: the student enters rules once per assignment:
+  - minimum year or maximum age in years
+  - publication types required (picked from the PubMed type list)
+  - language, DOI present, free full text present
+  - free-text criteria (shown as manual checkboxes, student-confirmed)
+Each row returns matches / doesn't match / unknown. No overall score, no
+"approved" badge.
+
+Free: unlimited checks, one active criteria set (the one tied to the one free
+assignment). Pro: saved criteria profiles per course (inside P1).
+
+2.3 F2: DOSAGE TRAINER (FREE)
+--------------------------------------------------------------------------------
+Purpose: unlimited deterministic practice with worked steps. Educational only.
+Persistent banner: "Educational practice. Never use for real patient dosing."
+
+Problem generators (seeded, each with an independent reference implementation):
+  - Unit conversions: mg/g/mcg, mL/L, lb/kg, tsp/tbsp/mL, oz/mL
+  - Oral tablets and capsules: desired / have x quantity
+  - Oral liquids: desired / have x volume
+  - Weight-based dose: mg/kg x kg, lb to kg first
+  - Per-day dosing divided by frequency
+  - Pediatric safe range: compute the range, compare an ordered dose, answer
+    within / below / above
+  - IV flow: mL/hr = volume / hours
+  - Drops: gtt/min = volume x drop factor / minutes (10, 15, 20, 60 gtt/mL)
+  - Reconstitution: concentration after dilution, volume to give
+  - Percent solutions and ratios
+
+Behavior:
+  - Student types a number and picks a unit. Wrong unit counts wrong.
+  - Show full worked solution with units cancelled step by step
+    (dimensional analysis).
+  - Rounding rule chosen in Settings (round at the end versus intermediate,
+    decimal places, "whole number for tablets"). Default rule is displayed on
+    every problem.
+  - Flags "Do Not Use" abbreviations and trailing or missing zeros in any
+    order text shown (U, IU, Q.D./QD/q.d./qd, Q.O.D./QOD, trailing zero,
+    missing leading zero, MS, MSO4, MgSO4). Verify against the official
+    Joint Commission list at build.
+  - Drug names: only from an educator-reviewed list with plausible education
+    ranges, otherwise "Drug A". No patient fields.
+Content gate before release: a nursing instructor or pharmacist reviews every
+generator (number ranges, formulas, rounding, units, explanations). Test: for
+each generator, 1,000 seeds compared against the independent reference
+implementation. If review cannot be secured, ship without dosage content.
+Free: unlimited.
+
+2.4 F3: STATS CALCULATOR (FREE)
+--------------------------------------------------------------------------------
+Purpose: decode the numbers in a paper. Math and fixed templates only.
+
+Tab A, "Calculate from counts":
+  Inputs: events and total in experimental and control groups, outcome
+  direction (bad outcome or good outcome), confidence level (90/95/99).
+  Outputs: risk in each group, risk difference (ARR or ARI), RRR, RR, OR,
+  NNT or NNH with the right label for the direction.
+  Formulas:
+    RR = p1/p0; OR = (a/b)/(c/d); RD = p0 - p1
+    CI(RR) = exp(ln RR +/- z x SE), SE = sqrt(1/a - 1/n1 + 1/c - 1/n0)
+    CI(OR) = exp(ln OR +/- z x SE), SE = sqrt(1/a + 1/b + 1/c + 1/d)
+    CI(RD) = RD +/- z x sqrt(p1(1-p1)/n1 + p0(1-p0)/n0)
+    NNT = 1/|ARR|, rounded up to the next whole number
+    NNT interval = reciprocals of the CI limits of ARR; if the ARR CI crosses
+    zero, show "no single NNT range (CI includes no effect)" instead of a range
+    Zero cells: add 0.5 to all cells and label "continuity correction applied".
+
+Tab B, "Explain a reported result":
+  Student enters a reported OR, RR or HR with its CI, and optionally a p-value.
+  Template output (slots typed by the student, defaults "the outcome",
+  "the group", "the comparator"):
+    - Direction and size: "X% higher/lower {odds|risk|hazard}"
+    - "The CI does not include 1, so the result is statistically significant at
+      the {alpha} level" or "includes 1, so it is not statistically significant"
+    - Fixed caution lines: statistical significance is not clinical importance;
+      odds are not risk; OR overstates RR for common outcomes.
+  NNT from a reported ratio is offered only after the student enters the
+  comparator, baseline (control) event rate and follow-up period. An OR alone
+  never produces an NNT.
+    ARR from RR and control rate CER: ARR = CER x (1 - RR)
+    EER from OR: EER = OR x CER / (1 - CER + OR x CER); ARR = CER - EER
+
+Tab C, "Test accuracy": from a 2x2 table give sensitivity, specificity, PPV,
+  NPV, LR+, LR-.
+
+Highlight helper: the student can highlight "OR 1.45, 95% CI 1.12-1.88" on a
+page; HoneLENS suggests the numbers, the student confirms each field before
+anything is calculated. No automatic reading.
+Free: unlimited.
+
+2.5 P1: EBP ASSIGNMENT BUILDER (PAID)
+--------------------------------------------------------------------------------
+Purpose: the full path from assignment rules to a submitted evidence table.
+
+Components:
+  a) Assignment workspace: title, course, due date, criteria profile, PICOT
+     fields (Population, Intervention, Comparison, Outcome, Time; free text),
+     notes. Local only.
+  b) Reading sheet (original prompts, student-led). Universal block: aim,
+     design as reported, sample and setting, measures, main findings with
+     numbers (links to Stats Calculator), limitations stated by the authors,
+     relevance to my PICOT. Design block by study type, each prompt answered
+     Yes / No / Unclear / Not applicable plus a required quote and page slot
+     and an optional note. No scores, no totals, no quality rating.
+     Design blocks and their themes (write original wording):
+       RCT: randomization method, concealment, blinding, groups alike at
+         baseline, follow-up and dropout, analysis as assigned, outcome
+         measurement, sample size reasoning
+       Cohort: groups comparable, exposure measured, outcome measured,
+         confounders named, follow-up long enough, losses to follow-up
+       Case-control: case definition, control selection, exposure measurement,
+         confounders, recall problems
+       Cross-sectional: sample frame, measures, confounders, analysis fit
+       Quasi-experimental: comparison group, timing, threats to validity
+       Qualitative: aim fits method, sampling, data collection, researcher
+         role, rigor strategies, findings supported by quotes
+       Systematic review or meta-analysis: question, search described,
+         inclusion rules, quality of included studies, heterogeneity,
+         publication bias handling
+     LICENSE RULE: do not copy wording or structure from CASP (CC BY-NC-SA) or
+     JBI (research-use restrictions). Themes are generic research concepts;
+     the phrasing must be original, or get written commercial permission.
+  c) Query builder: the student enters a term per PICOT element, adds
+     synonyms they choose, and picks MeSH matches from the NLM MeSH lookup
+     list. HoneLENS builds the string, for example:
+       ("Term"[MeSH Terms] OR "synonym"[Title/Abstract]) AND (...)
+     Toggles: date range, English, humans. Shows the final query, "Open in
+     PubMed" button. Label: "A starting search, not an exhaustive one."
+  d) Evidence matrix: one row per paper, student-selected columns: citation,
+     aim, design, level (student-confirmed, Source Check suggestion shown),
+     sample and setting, intervention or exposure, outcome measures, key
+     findings, limitations, student quality grade (optional), notes. Every cell
+     can link to a saved quote or page. Reorder, hide columns, row links back
+     to its reading sheet.
+  e) Submission Pack export: Word (docx built on-device) with the matrix
+     (landscape), APA reference list, criteria summary, source links; also
+     XLSX and CSV. Optional appendix: activity log (student's choice). Output
+     is structure only; no prose or conclusions are written for the student.
+  f) Unlimited assignment workspaces and reusable course criteria profiles.
+     A profile is applied only when the student chooses it.
+
+Free taste: 1 assignment, up to 3 papers (reading sheet and matrix rows), CSV
+export only. Paid: more papers, more assignments, profiles, Word and XLSX.
+
+2.6 P2: DOSAGE EXAM SIMULATOR (PAID)
+--------------------------------------------------------------------------------
+Purpose: simulate the dosage exam that decides progression in many programs.
+Exam profile (student-set, because programs differ; thresholds vary, for
+example 90% or 100%): number of questions, time limit, pass threshold,
+rounding rule, units required, category mix. Never present 100% as universal.
+Extra categories beyond F2:
+  - Titration: mcg/kg/min to mL/hr = (dose x kg x 60) / concentration (mcg/mL)
+  - Heparin: units/hr to mL/hr
+  - Body surface area (Mosteller): sqrt(cm x kg / 3600) and mg/m2 dosing
+  - Concentration and dilution, multi-step conversions
+  - Maintenance fluid estimate (4-2-1 rule), labeled educational
+Behavior:
+  - Seeded exams: retake the same seed or draw a new one. Timer, no hints, all
+    answers marked at the end, full worked solutions in review.
+  - Mistake analytics by rule-based matching: compare the student's wrong
+    answer against computed typical-error answers (off by x10 or /10, lb used
+    instead of kg, forgot to divide by frequency, forgot minute-to-hour,
+    wrong drop factor, rounding error). Tag each miss with the matching error
+    type; unmatched misses are tagged "other".
+  - Readiness line: "{n} of your last {m} exams met your {x}% threshold". No
+    prediction of a real exam result.
+  - Results saved as dosageAttempts (topic, NCLEX client-need tag, correct,
+    timestamp).
+Free taste: 1 exam per month. Paid: unlimited exams, all categories, analytics.
+
+2.7 P3: SOURCE AUDIT (PAID)
+--------------------------------------------------------------------------------
+Purpose: catch graded mistakes before submission. All checks run locally except
+public metadata lookups of identifiers.
+
+Input A, batch of sources: paste DOIs, PMIDs or URLs (up to 100). For each:
+  - matched record (title, journal, year, DOI, PMID) and lookup timestamp
+  - duplicates (same DOI or PMID, or identical normalized title)
+  - missing fields
+  - date-window fit against the student's window
+  - Crossref update relationships and PubMed retraction type, with notice link
+  - "No matching record found" or "could not be looked up (offline or error)"
+
+Input B, one DOCX (processed in the browser, never uploaded):
+  - Extract paragraph text (mammoth.js raw text).
+  - In-text citations: parenthetical (Author, 2020), (Author & Author, 2020),
+    (Author et al., 2020), multiple with semicolons; narrative Author (2020).
+  - Reference list: entries after a heading named "References" (case-insensitive).
+    Parse first-author surname, year (including a/b suffix and n.d.), DOI.
+  - Matching key: normalized first-author surname plus year.
+  - Report: cited but not in list; in list but not cited; year mismatches;
+    ambiguous matches; entries that could not be parsed (always listed, never
+    guessed).
+  - Reference DOIs are looked up with the same lookups as Input A.
+  - Sources older than the student's age limit.
+  - Retracted or updated sources.
+  - Abbreviation scan: Do Not Use list plus the student's custom list, each hit
+    shown with surrounding text.
+  - Missing APA parts in parsed entries (no year, no title, no volume, no DOI
+    where Crossref has one).
+  - Italics and layout are not checked; the report says so.
+HoneLENS never rewrites the document and never auto-fixes. Each flag has a
+"What this means" panel (Q11).
+Report: on-screen table, CSV export.
+
+Free taste: up to 5 identifiers or 1 DOCX per month, issue counts by category
+only. Paid: full details, matched records, flags with context, CSV, unlimited.
+
+2.8 QUIET FEATURES (FREE, NOT MARKETED)
+--------------------------------------------------------------------------------
+Q1  Page capture
+    Visible area, region select, full-page stitch. Uses captureVisibleTab with
+    activeTab, scroll-and-stitch in an offscreen canvas, waits for lazy
+    loading, hides sticky and fixed elements after the first frame, caps height
+    near 15,000 px, warns on failure (protected pages, inner scroll areas).
+    A capture is a record of a page at a time, not searchable text. Attachable
+    to a clip. Saved as PNG.
+
+Q2  Source clipper
+    Save a selected excerpt with title, URL, capture time, and PDF page when
+    available. Right-click menu and panel button. Return link uses a text
+    fragment (#:~:text=) where the page allows it.
+
+Q3  Highlights and notes
+    Quoted text and the student's own notes are separate objects with different
+    styling. Clicking an excerpt returns to the source location when possible.
+    Notes can be linked to a reading-sheet field or matrix cell.
+
+Q4  Reading intake
+    Web text, selectable-text PDFs (pdf.js, per-page lazy loading), DOCX
+    (mammoth.js). Image-only PDFs are detected (pages with no text items) and
+    labeled "scanned: text not available; you can attach the file and keep the
+    link". Images are attachments only. Warn above about 100 pages.
+
+Q5  Library and search
+    IndexedDB library. Literal, normalized text search across imported text,
+    clips and notes. Filters: course, source, date, tag (student-made), review
+    status. No semantic search, no auto-tags.
+
+Q6  Citation maker
+    Resolve a DOI or PMID (Crossref, PubMed), show an editable preview, warn
+    about missing fields, never invent authors, dates or pages. APA 7 and AMA 11.
+    APA rules: up to 20 authors listed, 21+ gives first 19, ellipsis, last
+    author; in-text forms (Author, Year), (A & B, Year), (A et al., Year) for 3+,
+    group authors; DOI as https://doi.org/...; alphabetical reference list.
+    Titles are kept as published; "convert to sentence case" is an option with a
+    preview and a warning about proper nouns and acronyms. Copy as rich text
+    with italics and hanging indent for Word. Manual entry form for sources
+    without identifiers.
+
+Q7  Flashcards (Leitner)
+    Student writes the front and back, or selects words inside their own quote
+    to mask (cloze). Each card keeps its source link. Fixed, documented
+    schedule: five boxes with review intervals of 1, 3, 7, 14 and 30 days;
+    correct moves up one box, wrong returns to box 1. Export to Anki-importable
+    text (Basic and Cloze, {{c1::text}}). No generation, no machine-learned
+    scheduling.
+
+Q8  Backup and hone-pack
+    Automatic local backup reminder, one-file export and import
+    (hone-pack v1), merge with duplicate skipping and a count report, delete
+    one and delete all. Never includes the license key.
+
+Q9  Activity log
+    Local timestamped record of actions inside HoneLENS (clip saved, check run,
+    matrix edited). Optional appendix in the Submission Pack. It describes
+    activity in HoneLENS only; the product never presents it as proof of
+    authorship or of AI-free work.
+
+Q10 Network disclosure panel
+    Lists every outside request (section 1.6), what is sent, and to whom. Works
+    in no-account local mode.
+
+Q11 "What this check means" panels
+    Every automated flag has a short panel stating its limit. Examples:
+    "No matching record found" is a limited database result, not proof of no
+    retraction. "Date fits your window" is a date check, not instructor
+    approval. "Nearest fit" evidence level depends on your course's framework.
+
+Q12 HoneNurse links
+    Rules in section 1.8.
+
+Q13 Onboarding and glossary
+    Three screens: what HoneLENS does and does not do; how to start one source;
+    where data lives and what is sent. Glossary in Settings.
+
+2.9 CUT FOR GOOD (DO NOT BUILD)
+--------------------------------------------------------------------------------
+OCR; AI appraisal and every AI call; central LLM and BYOK; NCLEX questions
+generated from papers; depth rewrite; separate self-check; conflict check;
+semester progress board; drug and lab lookups; NANDA care-plan templates;
+Process Report as a headline; copying CASP or JBI checklist wording.
+
+
+################################################################################
+3. PAYMENT RAIL
+################################################################################
+
+3.1 VERIFIED FACTS
+--------------------------------------------------------------------------------
+  - Google deprecated its own Chrome Web Store payments. New paid items were
+    disabled in 2020 and existing items lost payments on Feb 1, 2021 (Chrome
+    Web Store payments deprecation notice). Google tells developers to move to
+    another payment processor and licensing scheme. There is no Google payment
+    rail to configure; you choose your own, and third-party processors are
+    allowed.
+  - ExtensionPay was never Google's. It is a third-party service; by its own
+    description it charges through your own Stripe account. Stripe seller
+    accounts are not available in Rwanda, so skip it.
+  - Dodo Payments (Merchant of Record) lists Rwanda in its accepted countries
+    for merchant accounts and payouts. Condition: KYC documents must be issued
+    in a listed country. It handles sales tax and VAT as merchant of record.
+  - Dodo license keys have public activate, validate and deactivate endpoints
+    that need no API key, so the extension can call them directly.
+  - Polar (fallback): license-key validation is also public; it requires your
+    organization_id in the request.
+
+3.2 CHOSEN RAIL
+--------------------------------------------------------------------------------
+  Primary:    Dodo Payments (license keys, no backend needed)
+  Fallback 1: Polar.sh (license keys; payouts via Stripe Connect Express to a
+              local bank in local currency; confirm at signup)
+  Fallback 2: Lemon Squeezy (public license API at api.lemonsqueezy.com/v1/
+              licenses; re-check its seller and payout status, it is being moved
+              under Stripe Managed Payments)
+Build a small licenseProvider adapter (activate, validate, deactivate) so
+switching providers is a one-file change.
+
+Fee sanity check (if Dodo is still 4% + $0.40 per transaction; confirm on
+dodopayments.com/pricing, and confirm the SWIFT payout fee and minimum in the
+dashboard):
+  $5.99 monthly   about 10.7% total
+  $14.99 semester about 6.7%
+  $29.99 yearly   about 5.3%
+Fixed fee hurts the monthly plan most: show the semester pass first.
+
+3.3 PRODUCTS TO CREATE IN DODO
+--------------------------------------------------------------------------------
+Entitlements (Entitlements > + > License Keys):
+  A) "HoneLENS Pro Subscription Key": fulfillment Automatic, activations 3,
+     License Length "No expiration" (for subscriptions, key validity follows
+     the subscription status).
+  B) "HoneLENS Semester Key": fulfillment Automatic, activations 3, License
+     Length 4 months (check the unit options in the dashboard).
+  Activation message (both): "Open HoneLENS, go to Settings > License, paste
+  this key, press Activate."
+
+Products:
+  HoneLENS Pro Monthly    $5.99   subscription, monthly   -> entitlement A
+  HoneLENS Pro Yearly     $29.99  subscription, yearly    -> entitlement A
+  HoneLENS Semester Pass  $14.99  one-time, no auto-renew -> entitlement B
+All three unlock the same Pro tier. Prices are hypotheses to confirm in a paid
+beta.
+
+Setup steps:
+  1. Create the Dodo account, complete KYC with the ID issued in Rwanda, set the
+     payout bank (Equity Bank Rwanda, SWIFT EQBLRWRW).
+  2. Create the two entitlements and three products above (test mode first).
+  3. Create a Payment Link per product. Put the three links in a config file;
+     "Get Pro" buttons open them in a new tab.
+  4. Set each product's return_url to a static HoneLENS "thank you" page.
+     Dodo appends payment_id, status, license_key and email to it.
+  5. Test with test.dodopayments.com, then switch the base URL to
+     live.dodopayments.com.
+
+Key lifecycle (from Dodo's license-key rules, so the app needs no extra logic):
+  payment.succeeded (one-time)      key issued, expires per License Length
+  subscription.active               key issued, no expiry
+  subscription.renewed              no change
+  subscription.past_due             stays active during the grace period
+  subscription.on_hold / paused     key disabled, re-enabled on resume
+  subscription.cancelled / expired  key disabled permanently
+  subscription.plan_changed         old key disabled, new key issued
+                                    (tell the student to paste the new key)
+  refund.succeeded (one-time)       key disabled
+
+3.4 STATIC "THANK YOU" PAGE
+--------------------------------------------------------------------------------
+Any static host. Shows the key and a copy button:
+
+  <p>Your HoneLENS license key:</p>
+  <code id="k"></code> <button id="c">Copy</button>
+  <script>
+    const key = new URLSearchParams(location.search).get('license_key');
+    if (key) {
+      const first = key.split(',')[0];           // comma list when quantity > 1
+      document.getElementById('k').textContent = first;
+      document.getElementById('c').onclick = () => navigator.clipboard.writeText(first);
+    }
+  </script>
+The key is also emailed by Dodo.
+
+3.5 EXTENSION CODE: LICENSE MODULE (DODO)
+--------------------------------------------------------------------------------
+manifest.json (relevant parts):
+  "permissions": ["sidePanel","storage","unlimitedStorage","activeTab",
+                  "scripting","contextMenus","clipboardWrite","offscreen",
+                  "alarms"],
+  "host_permissions": [
+    "https://eutils.ncbi.nlm.nih.gov/*",
+    "https://api.crossref.org/*",
+    "https://www.ebi.ac.uk/europepmc/*",
+    "https://id.nlm.nih.gov/*",
+    "https://live.dodopayments.com/*"
+  ]
+
+modules/license/license.js:
+
+  const BASE = 'https://live.dodopayments.com';  // test: https://test.dodopayments.com
+  const GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+  const STORE = 'license';
+
+  const deviceLabel = () => `HoneLENS Chrome (${navigator.platform || 'device'})`;
+
+  async function post(path, body) {
+    try {
+      const res = await fetch(BASE + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      let data = null;
+      try { data = await res.json(); } catch {}
+      return { status: res.status, data, network: false };
+    } catch {
+      return { status: 0, data: null, network: true };
+    }
+  }
+
+  export async function activate(rawKey) {
+    const key = rawKey.trim();
+    const r = await post('/licenses/activate', { license_key: key, name: deviceLabel() });
+    if (r.network) return { ok: false, reason: 'offline' };
+    if (r.status === 404) return { ok: false, reason: 'not_found' };
+    if (r.status === 403) return { ok: false, reason: 'inactive' };      // key not active
+    if (r.status === 422) return { ok: false, reason: 'device_limit' };  // 3 devices used
+    if (r.status < 200 || r.status >= 300) return { ok: false, reason: 'error' };
+    const instanceId = r.data.id;                                        // "lki_..."
+    const v = await post('/licenses/validate',
+      { license_key: key, license_key_instance_id: instanceId });
+    if (!(v.data && v.data.valid === true)) return { ok: false, reason: 'inactive' };
+    await chrome.storage.local.set({
+      [STORE]: { key, instanceId, valid: true, lastValidAt: Date.now() }
+    });
+    return { ok: true };
+  }
+
+  export async function revalidate() {
+    const { [STORE]: lic } = await chrome.storage.local.get(STORE);
+    if (!lic) return;
+    const r = await post('/licenses/validate',
+      { license_key: lic.key, license_key_instance_id: lic.instanceId });
+    if (r.network || r.status >= 500) return;   // unreachable: keep state, grace applies
+    const valid = r.status === 200 && r.data && r.data.valid === true;
+    await chrome.storage.local.set({
+      [STORE]: { ...lic, valid, lastValidAt: valid ? Date.now() : lic.lastValidAt }
+    });
+  }
+
+  export async function isPro() {
+    const { [STORE]: lic } = await chrome.storage.local.get(STORE);
+    return !!(lic && lic.valid && Date.now() - lic.lastValidAt < GRACE_MS);
+  }
+
+  export async function deactivate() {   // frees one of the 3 device slots
+    const { [STORE]: lic } = await chrome.storage.local.get(STORE);
+    if (!lic) return;
+    await post('/licenses/deactivate',
+      { license_key: lic.key, license_key_instance_id: lic.instanceId });
+    await chrome.storage.local.remove(STORE);
+  }
+
+background.js (service worker):
+
+  import { revalidate } from './modules/license/license.js';
+  chrome.runtime.onStartup.addListener(revalidate);
+  chrome.runtime.onInstalled.addListener(() =>
+    chrome.alarms.create('license', { periodInMinutes: 1440 }));
+  chrome.alarms.onAlarm.addListener(a => { if (a.name === 'license') revalidate(); });
+
+Settings > License UI states: not activated (input and Activate button, "Get
+Pro" links); active (plan unknown by design, "Pro active", devices note,
+Deactivate this device); offline grace ("Last verified {date}; Pro keeps working
+for up to 7 days offline"); expired or refunded ("This key is no longer active");
+device limit ("This key is on 3 devices. Deactivate one in HoneLENS on that
+device, or contact support").
+
+3.6 FEATURE GATING (CODE)
+--------------------------------------------------------------------------------
+config/features.js:
+
+  export const FEATURES = {
+    source_check:{tier:'free'}, stats_calc:{tier:'free'}, dosage_trainer:{tier:'free'},
+    capture:{tier:'free'}, clipper:{tier:'free'}, library:{tier:'free'},
+    cite:{tier:'free'}, cards:{tier:'free'}, backup:{tier:'free'},
+    ebp_builder:{tier:'free-limited'}, ebp_word_export:{tier:'pro'},
+    ebp_profiles:{tier:'pro'}, simulator:{tier:'free-limited'},
+    audit:{tier:'free-limited'}, audit_details:{tier:'pro'}
+  };
+  export const FREE_LIMITS = {
+    activeAssignments: 1, papersPerAssignment: 3,
+    simulatorExamsPerMonth: 1, auditIdentifiersPerRun: 5, auditDocxPerMonth: 1
+  };
+
+  export async function allowed(featureId, usage = {}) {
+    const f = FEATURES[featureId];
+    if (!f || f.tier === 'free') return true;
+    if (await isPro()) return true;
+    if (f.tier === 'free-limited') return withinFreeLimit(featureId, usage);
+    return false;                                  // 'pro'
+  }
+Every entry point calls allowed(). A build check fails if any feature lacks a
+registry entry. Client-side gating can be bypassed; accept that for these
+offline features.
+
+3.7 FALLBACK ADAPTER: POLAR (same shape, different calls)
+--------------------------------------------------------------------------------
+  POST https://api.polar.sh/v1/customer-portal/license-keys/validate
+  body: { key, organization_id: "<your org id>", activation_id? }
+  Treat as valid when the response status is "granted" and expires_at is empty
+  or in the future (confirm field names in Polar's docs). Activation endpoint:
+  /v1/customer-portal/license-keys/activate (needed only if you set an
+  activation limit). Polar lets you set a branded key prefix and a per-key
+  expiry, which suits the semester pass.
+
+3.8 STORE-LISTING STATEMENTS FOR PAYMENTS
+--------------------------------------------------------------------------------
+  - Pro is purchased outside the Chrome Web Store through a third-party
+    processor; prices are shown in the listing and in-app.
+  - The license key and a device label are sent to the processor to confirm
+    Pro status (shown in the Network Disclosure panel).
+  - No other data is sent.
+
+
+################################################################################
+4. DO YOU NEED YOUR OWN DATABASE?
+################################################################################
+
+4.1 SHORT ANSWER
+--------------------------------------------------------------------------------
+Not for v1. The payment provider is already your database of who paid:
+  - customers, emails, payments, subscriptions, refunds
+  - every license key, its status, expiry, and activations used
+  - the key is disabled automatically on cancel, refund, hold or expiry, and
+    the extension sees that through validate
+Where to look: Dodo dashboard (Entitlements > grants, Sales > License Keys).
+
+The one thing validate does not return is which plan the key belongs to; it
+returns only valid true or false. HoneLENS does not need it, because all three
+plans unlock the same Pro tier.
+
+4.2 WHEN A DATABASE BECOMES USEFUL (ALL OPTIONAL)
+--------------------------------------------------------------------------------
+  - show "Plan: Semester, renews/ends {date}" inside Settings
+  - self-service "I lost my key" lookup
+  - support lookups beyond the dashboard
+  - the later HoneNurse account that adopts existing licenses
+Then add the smallest possible backend: one Cloudflare Worker that receives the
+provider's webhooks and writes to Cloudflare D1. This runs in the cloud, never
+on your PC.
+
+4.3 OPTIONAL MINIMAL SCHEMA (D1)
+--------------------------------------------------------------------------------
+  CREATE TABLE customers (
+    id TEXT PRIMARY KEY, email TEXT, created_at INTEGER);
+  CREATE TABLE entitlements (
+    key_hash TEXT PRIMARY KEY,          -- SHA-256 of the license key, not the key
+    customer_id TEXT, product_id TEXT,
+    plan TEXT,                          -- 'monthly' | 'semester' | 'yearly'
+    status TEXT,                        -- 'active' | 'disabled' | 'revoked'
+    expires_at INTEGER, updated_at INTEGER);
+  CREATE TABLE events (
+    id TEXT PRIMARY KEY, type TEXT, received_at INTEGER);  -- idempotency
+
+Events to handle: entitlement_grant.created, entitlement_grant.delivered,
+entitlement_grant.revoked, subscription.active, subscription.renewed,
+subscription.on_hold, subscription.paused, subscription.cancelled,
+subscription.expired, subscription.plan_changed, payment.succeeded,
+refund.succeeded. Read the exact payload field names from Dodo's webhook events
+guide when you write the handler.
+
+4.4 OPTIONAL WORKER: WEBHOOK RECEIVER
+--------------------------------------------------------------------------------
+Standard Webhooks style signature check (confirm Dodo's header names in its
+webhook docs): headers webhook-id, webhook-timestamp, webhook-signature.
+
+  export default {
+    async fetch(req, env) {
+      const url = new URL(req.url);
+      if (url.pathname !== '/webhook/dodo' || req.method !== 'POST')
+        return new Response('not found', { status: 404 });
+      const body = await req.text();
+      const id = req.headers.get('webhook-id');
+      const ts = req.headers.get('webhook-timestamp');
+      const sig = req.headers.get('webhook-signature');
+      if (Math.abs(Date.now() / 1000 - Number(ts)) > 300)
+        return new Response('stale', { status: 400 });
+      if (!(await verify(env.DODO_WEBHOOK_SECRET, id, ts, body, sig)))
+        return new Response('bad signature', { status: 401 });
+      const seen = await env.DB.prepare('SELECT 1 FROM events WHERE id=?').bind(id).first();
+      if (seen) return new Response('ok');
+      const evt = JSON.parse(body);
+      await env.DB.prepare('INSERT INTO events (id,type,received_at) VALUES (?,?,?)')
+        .bind(id, evt.type, Date.now()).run();
+      await applyEvent(evt, env);   // map event type -> entitlements.status/plan/expires_at
+      return new Response('ok');
+    }
+  };
+
+  async function verify(secret, id, ts, body, header) {
+    const raw = Uint8Array.from(atob(secret.replace(/^whsec_/, '')), c => c.charCodeAt(0));
+    const key = await crypto.subtle.importKey('raw', raw,
+      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const mac = await crypto.subtle.sign('HMAC', key,
+      new TextEncoder().encode(`${id}.${ts}.${body}`));
+    const expected = btoa(String.fromCharCode(...new Uint8Array(mac)));
+    return header.split(' ').some(part => part.split(',')[1] === expected);
+  }
+Secrets live in Worker secrets (DODO_WEBHOOK_SECRET), never in the extension or
+the repo. The extension still validates against the provider directly; the
+Worker only adds plan and renewal display and support lookups.
+
+
+################################################################################
+5. ITEMS TO RE-VERIFY WHILE BUILDING
+################################################################################
+  - Dodo: account and KYC approval, current fee, SWIFT payout fee and minimum,
+    License Length unit options, whether validate returns anything beyond
+    "valid", webhook header names and payload fields.
+  - Polar: status string and field names on validate, payout route to Equity
+    Bank Rwanda.
+  - Crossref: exact field names for update records (updated-by on the work,
+    update-to on the notice, filter updates:{doi}); polite-pool mailto
+    contact.
+  - NLM MeSH lookup endpoint and response shape; Europe PMC open-access fields.
+  - NCBI E-utilities rate limit (3 per second without a key).
+  - Joint Commission "Do Not Use" list against the official current list.
+  - CASP and JBI license terms before any wording is reused.
+  - Chrome Web Store policy text for single purpose, permissions and user data
+    at submission time.
+  - Dosage content reviewed by a nursing instructor or pharmacist before release.
+================================================================================
+END
+================================================================================

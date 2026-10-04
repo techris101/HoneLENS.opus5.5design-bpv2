@@ -1,0 +1,20 @@
+{
+  "name": "honelens",
+  "version": "1.0.0",
+  "description": "Chrome side-panel extension for US nursing students: source verification, EBP assignment builder, and deterministic dosage drills.",
+  "type": "module",
+  "scripts": {
+    "test": "node test/run-tests.js",
+    "package": "node scripts/package-extension.js"
+  },
+  "keywords": [
+    "chrome-extension",
+    "nursing",
+    "ebp",
+    "evidence-based-practice",
+    "dosage-calculations",
+    "manifest-v3"
+  ],
+  "author": "HoneNurse",
+  "license": "UNLICENSED"
+}
